@@ -1,0 +1,8 @@
+services:
+  api:
+    build: .
+    container_name: golden-raspberry-api
+    ports:
+      - "8080:8080"
+    environment:
+      H2_CONSOLE_ENABLED: "false"
