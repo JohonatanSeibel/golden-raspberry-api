@@ -2,22 +2,27 @@
 
 ## Organização
 
-Quatro camadas (`api`, `application`, `domain`, `infrastructure`) com uma regra simples: a lógica de
-negócio mora no `domain` e não conhece o Spring. O cálculo dos intervalos (`AwardIntervalCalculator`)
-é uma classe Java pura — recebe a lista de vencedores e devolve o resultado. Isso mantém controller e
-repositório "burros" (só entrada/saída) e deixa a parte que realmente importa fácil de ler e de testar.
+Quatro camadas (`api`, `application`, `domain`, `infrastructure`). O cálculo pesado — agrupar por
+produtor e achar os intervalos entre vitórias — fica numa query SQL com window function. A classe de
+domínio `AwardIntervalCalculator` é Java puro e cuida só da seleção do menor e do maior intervalo
+(com empates). Controller e service ficam "burros" (só entrada/saída e orquestração).
 
-O acesso a dados fica atrás da interface `MovieRepository` (no domínio); a implementação Spring Data
-(`JpaMovieRepository`) fica na infraestrutura. Para um projeto deste tamanho é inversão de dependência
-suficiente — não fui atrás de hexagonal completo, seria over-engineering.
+O acesso a dados fica atrás da interface `MovieRepository` (no domínio); na infraestrutura, o
+`MovieRepositoryAdapter` implementa essa porta delegando ao Spring Data (`JpaMovieRepository`). Para
+um projeto deste tamanho é inversão de dependência suficiente — não fui atrás de hexagonal completo,
+seria over-engineering.
 
 ## A regra de negócio
 
-Para cada produtor, junto os anos em que ganhou, ordeno e calculo o intervalo entre vitórias
-consecutivas. `min` e `max` são o menor e o maior intervalo global. Só entram produtores com duas
-vitórias ou mais; se ninguém se qualifica, as duas listas voltam vazias.
+O grosso do trabalho está numa query SQL com window function: particiono por produtor, ordeno por
+ano e o `LAG` me devolve o ano da vitória anterior — a diferença é o intervalo. Em uma passada no
+banco eu resolvo o agrupamento e todos os intervalos consecutivos, em vez de encadear vários loops
+em Java (e é justamente o tipo de SQL que a vaga pede). Só entram produtores com duas vitórias ou
+mais, o que cai naturalmente do `WHERE previous_win IS NOT NULL`. O Java recebe essa lista de
+intervalos e escolhe o menor e o maior global (com empates); se a lista vier vazia, `min` e `max`
+voltam vazios.
 
-O enunciado avisa que vão usar outros datasets, então três decisões aqui não são óbvias e mudam o
+O enunciado avisa que vão usar outros datasets, então três decisões não são óbvias e mudam o
 resultado dependendo dos dados:
 
 - **Um produtor pode aparecer mais de uma vez.** Cada item da resposta é um par
@@ -39,8 +44,9 @@ válido. O caminho do arquivo é uma property (`app.csv.path`), então dá para 
 recompilar. O parser separa os produtores por vírgula e por " and " na mesma regex, porque o campo
 mistura os dois ("A, B and C").
 
-Um ponto que vale citar: a busca de vencedores usa `join fetch` com `distinct` para trazer os
-produtores numa query só e evitar a duplicação de linhas que o `@ElementCollection` causa num join.
+Esse split na carga é o que viabiliza o SQL: cada produtor vira uma linha em `movie_producers`, então
+a window function consegue particionar por produtor e olhar a vitória anterior. Sem normalizar isso,
+o `LAG` não teria como agrupar.
 
 ## Testes
 

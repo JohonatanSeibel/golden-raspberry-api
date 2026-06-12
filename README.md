@@ -56,9 +56,11 @@ como trabalho: JPA/Hibernate, SQL, REST, entrega web, persistência, H2 e testes
 comando. Trazer um container EJB para um teste isolado seria demais, mas posso refatorar o projeto se for o caso.
 
 O resto é o básico bem-feito: camadas separadas
-(`api → application → domain ← infrastructure`), a regra de negócio numa classe pura e testável
-(`AwardIntervalCalculator`), configuração por variável de ambiente (nada hardcoded) e o cálculo
-pensado para acertar em qualquer dataset, não só no de exemplo.
+(`api → application → domain ← infrastructure`), configuração por variável de ambiente (nada
+hardcoded) e o cálculo pensado para acertar em qualquer dataset, não só no de exemplo. O cálculo dos
+intervalos entre vitórias é feito no banco com uma window function (`LAG`) — coloca o SQL no centro,
+que é o foco da vaga, e deixa para a classe de domínio (`AwardIntervalCalculator`) só a seleção do
+menor e do maior intervalo.
 
 As demais decisões de negócio e arquitetura estão em [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 

@@ -2,7 +2,7 @@ package com.outsera.raspberry.application;
 
 import com.outsera.raspberry.application.dto.AwardIntervalResponse;
 import com.outsera.raspberry.application.dto.ProducerIntervalDTO;
-import com.outsera.raspberry.domain.service.AwardInterval;
+import com.outsera.raspberry.domain.model.AwardInterval;
 import com.outsera.raspberry.domain.service.AwardIntervalResult;
 import java.util.List;
 
